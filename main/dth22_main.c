@@ -14,6 +14,8 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
+#include "DHT22.h"
+
 /**
  * Brief:
  * This test code shows how to configure gpio and how to use gpio interrupt.
@@ -67,6 +69,27 @@ static void counter_task(void* arg)
     }
 }
 
+void DHT_task(void *pvParameter)
+{
+	setDHTgpio( 23 );
+	printf( "Starting DHT Task\n\n");
+
+	while(1) {
+	
+		printf("=== Reading DHT ===\n" );
+		int ret = readDHT();
+		
+		errorHandler(ret);
+
+		printf( "Hum %.1f\n", getHumidity() );
+		printf( "Tmp %.1f\n", getTemperature() );
+		
+		// -- wait at least 2 sec before reading again ------------
+		// The interval of whole process must be beyond 2 seconds !! 
+		vTaskDelay( 3000 / portTICK_RATE_MS );
+	}
+}
+
 void app_main(void)
 {
     //zero-initialize the config structure.
@@ -92,6 +115,8 @@ void app_main(void)
     xTaskCreate(counter_task, "counter_task", 2048, NULL, 10, NULL);
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+
+	xTaskCreate( &DHT_task, "DHT_task", 2048, NULL, 5, NULL );
 
     while(1) {
         vTaskDelay(1000 / portTICK_RATE_MS);
